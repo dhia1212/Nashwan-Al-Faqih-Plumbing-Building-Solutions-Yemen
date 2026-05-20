@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 760" role="img" aria-labelledby="title desc">
+  <title id="title">Building materials and bathroom fixtures showcase</title>
+  <desc id="desc">A modern display of wall tiles, sink, pipes, valves, and bathroom fittings.</desc>
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f9fbf7"/>
+      <stop offset="1" stop-color="#dfe9e3"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#cad9d2"/>
+      <stop offset="1" stop-color="#eef4f1"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1b745e"/>
+      <stop offset="1" stop-color="#0f4438"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#10201b" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <rect width="960" height="760" fill="url(#wall)"/>
+  <path d="M0 552h960v208H0z" fill="url(#floor)"/>
+  <g opacity=".7" stroke="#c9d8d1" stroke-width="2">
+    <path d="M80 0v552M200 0v552M320 0v552M440 0v552M560 0v552M680 0v552M800 0v552M920 0v552"/>
+    <path d="M0 92h960M0 184h960M0 276h960M0 368h960M0 460h960"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M185 436h468c49 0 90 39 90 88v18c0 71-58 129-129 129H224c-71 0-129-58-129-129v-18c0-49 40-88 90-88z" fill="#fff"/>
+    <path d="M166 480h500c29 0 52 23 52 52v3c0 56-45 101-101 101H214c-56 0-101-45-101-101v-3c0-29 24-52 53-52z" fill="#e7efea"/>
+    <ellipse cx="416" cy="535" rx="140" ry="47" fill="#fff"/>
+    <ellipse cx="416" cy="535" rx="78" ry="24" fill="#c8d8d0"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M416 436V315c0-48 39-87 87-87h67" stroke="#214d43" stroke-width="23"/>
+    <path d="M570 229h85" stroke="#d7aa4b" stroke-width="23"/>
+    <path d="M655 229v87" stroke="#d7aa4b" stroke-width="23"/>
+    <path d="M655 316h86" stroke="#bd7b4b" stroke-width="23"/>
+    <path d="M742 316v116" stroke="#bd7b4b" stroke-width="23"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="656" y="152" width="96" height="96" rx="48" fill="url(#green)"/>
+    <circle cx="704" cy="200" r="27" fill="#f8fbf9"/>
+    <circle cx="704" cy="200" r="12" fill="#d7aa4b"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="708" y="417" width="118" height="42" rx="21" fill="#113f34"/>
+    <rect x="746" y="362" width="42" height="132" rx="20" fill="#174f42"/>
+    <rect x="724" y="346" width="86" height="28" rx="14" fill="#d7aa4b"/>
+  </g>
+  <g>
+    <rect x="102" y="110" width="150" height="150" rx="8" fill="#fff" opacity=".78"/>
+    <rect x="274" y="110" width="150" height="150" rx="8" fill="#fff" opacity=".5"/>
+    <rect x="102" y="282" width="150" height="150" rx="8" fill="#fff" opacity=".5"/>
+    <rect x="274" y="282" width="150" height="150" rx="8" fill="#fff" opacity=".78"/>
+    <path d="M131 188h92M349 183h44M137 359h70M321 359h72" stroke="#d4dfd9" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M92 668h246" stroke="#2d6f95" stroke-width="34" stroke-linecap="round"/>
+    <path d="M126 615h194" stroke="#8eb4c5" stroke-width="32" stroke-linecap="round"/>
+    <path d="M146 562h142" stroke="#114f40" stroke-width="30" stroke-linecap="round"/>
+    <circle cx="92" cy="668" r="21" fill="#e7f0eb"/>
+    <circle cx="126" cy="615" r="19" fill="#eef4f1"/>
+    <circle cx="146" cy="562" r="18" fill="#eef4f1"/>
+  </g>
+</svg>
