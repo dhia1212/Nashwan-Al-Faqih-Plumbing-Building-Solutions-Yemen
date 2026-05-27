@@ -374,7 +374,7 @@ const translations = {
     'form.nameLabel': 'الاسم الكامل',
     'form.namePh': 'اسمك',
     'form.phoneLabel': 'رقم الهاتف',
-    'form.phonePh': '+967 000 000 000',
+    'form.phonePh': '+967 737002000',
     'form.productLabel': 'فئة المنتج',
     'form.selectDefault': 'اختر فئة',
     'form.opt1': 'أنظمة إمداد المياه',
