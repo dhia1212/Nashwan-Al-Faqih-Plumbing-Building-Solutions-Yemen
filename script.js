@@ -1,808 +1,836 @@
-const cards = document.querySelectorAll(".product-card");
-const filters = document.querySelectorAll("[data-filter]");
-const typeChips = document.querySelectorAll("[data-type]");
-const productSearch = document.querySelector("[data-product-search]");
-const resultCount = document.querySelector("[data-result-count]");
-const activeFilterText = document.querySelector("[data-active-filter-text]");
-const emptyProducts = document.querySelector("[data-empty-products]");
-const resetFilterButtons = document.querySelectorAll("[data-reset-filters]");
-const productModal = document.querySelector("[data-product-modal]");
-const detailImage = document.querySelector("[data-detail-image]");
-const detailTag = document.querySelector("[data-detail-tag]");
-const detailTitle = document.querySelector("[data-detail-title]");
-const detailText = document.querySelector("[data-detail-text]");
-const detailLocation = document.querySelector("[data-detail-location]");
-const detailType = document.querySelector("[data-detail-type]");
-const detailSpecs = document.querySelector("[data-detail-specs]");
-const quoteForm = document.querySelector(".quote-form");
-const productSelect = quoteForm?.querySelector("select[name='product']");
-const messageField = quoteForm?.querySelector("textarea[name='message']");
-const smartTabs = document.querySelectorAll("[data-smart]");
-const smartPanels = document.querySelectorAll("[data-smart-panel]");
+/* =========================================
+   NASHWAN AL-FAQIH — MAIN SCRIPT
+   ========================================= */
 
-const productState = {
-  category: "all",
-  type: "all",
-  query: "",
-};
+'use strict';
 
-const categoryLabels = {
-  all: "All products",
-  water: "Water Supply",
-  sanitary: "Sanitary Ware",
-  valves: "Valves",
-  adhesives: "Adhesives",
-  accessories: "Accessories",
-  pipes: "PVC-U Pipes",
-  fittings: "Fittings",
-  drains: "Floor Drains",
-  outdoor: "Outdoor Solutions",
-};
-
-const typeLabels = {
-  all: "All types",
-  pipes: "Pipes",
-  fittings: "Fittings",
-  valves: "Valves",
-  sanitary: "Sanitary Ware",
-  adhesives: "Adhesives",
-  accessories: "Accessories",
-  drains: "Floor Drains",
-  outdoor: "Outdoor Solutions",
-};
-
-const categoryToQuoteOption = {
-  water: 0,
-  pipes: 0,
-  fittings: 0,
-  drains: 1,
-  outdoor: 1,
-  sanitary: 2,
-  valves: 3,
-  adhesives: 3,
-  accessories: 3,
-};
-
-let currentProduct = null;
-
-function visibleCards() {
-  return [...cards].filter((card) => !card.classList.contains("is-hidden"));
-}
-
-function formatCount(count) {
-  return count === 1 ? "1 matching product" : `${count} matching products`;
-}
-
-function updateFilterSummary(count) {
-  if (resultCount) resultCount.textContent = formatCount(count);
-
-  const parts = [];
-  if (productState.category !== "all") parts.push(categoryLabels[productState.category] || productState.category);
-  if (productState.type !== "all") parts.push(typeLabels[productState.type] || productState.type);
-  if (productState.query) parts.push(`search: "${productState.query}"`);
-
-  if (activeFilterText) {
-    activeFilterText.textContent = parts.length ? `Showing ${parts.join(" / ")}` : "Showing the full catalog";
-  }
-
-  resetFilterButtons.forEach((button) => {
-    button.disabled = parts.length === 0;
-  });
-}
-
-function applyProductFilters() {
-  let count = 0;
-
-  cards.forEach((card) => {
-    const matchesCategory = productState.category === "all" || card.dataset.category === productState.category;
-    const matchesType = productState.type === "all" || card.dataset.productType === productState.type;
-    const text = `${card.dataset.search || ""} ${card.textContent}`.toLowerCase();
-    const matchesQuery = !productState.query || text.includes(productState.query);
-    const visible = matchesCategory && matchesType && matchesQuery;
-
-    card.classList.toggle("is-hidden", !visible);
-    if (visible) count += 1;
-  });
-
-  if (emptyProducts) emptyProducts.hidden = count > 0;
-  updateFilterSummary(count);
-}
-
-function setCategory(category) {
-  productState.category = category;
-  filters.forEach((button) => button.classList.toggle("active", button.dataset.filter === category));
-  applyProductFilters();
-}
-
-function setType(type) {
-  productState.type = type;
-  typeChips.forEach((button) => button.classList.toggle("active", button.dataset.type === type));
-  applyProductFilters();
-}
-
-function resetFilters() {
-  productState.category = "all";
-  productState.type = "all";
-  productState.query = "";
-  if (productSearch) productSearch.value = "";
-  filters.forEach((button) => button.classList.toggle("active", button.dataset.filter === "all"));
-  typeChips.forEach((button) => button.classList.toggle("active", button.dataset.type === "all"));
-  applyProductFilters();
-}
-
-function getProductFromCard(card) {
-  const image = card.querySelector("img");
-  return {
-    card,
-    image,
-    title: card.querySelector("h3")?.textContent?.trim() || "Selected product",
-    tag: card.querySelector(".tag")?.textContent?.trim() || "Product",
-    text: card.querySelector("p")?.textContent?.trim() || "",
-    category: card.dataset.category || "all",
-    type: card.dataset.productType || "all",
-  };
-}
-
-function prepareQuote(product) {
-  if (!product) return;
-
-  if (productSelect && categoryToQuoteOption[product.category] !== undefined) {
-    productSelect.selectedIndex = categoryToQuoteOption[product.category];
-  }
-
-  if (messageField && !messageField.value.trim()) {
-    messageField.value = `I would like a quote for ${product.title}. Please share price, available sizes, and delivery options.`;
-  }
-}
-
-function openProductDetail(card) {
-  if (!productModal) return;
-
-  const product = getProductFromCard(card);
-  const specs = card.querySelector("dl");
-  currentProduct = product;
-
-  detailImage.src = product.image?.src || "";
-  detailImage.alt = product.image?.alt || product.title;
-  detailTag.textContent = product.tag;
-  detailTitle.textContent = product.title;
-  detailText.textContent = product.text;
-  detailLocation.textContent = `Catalog > ${categoryLabels[product.category] || product.category}`;
-  detailType.textContent = typeLabels[product.type] || product.type;
-  if (detailSpecs) detailSpecs.innerHTML = specs?.innerHTML || "";
-
-  productModal.hidden = false;
-  document.body.style.overflow = "hidden";
-}
-
-function closeProductDetail() {
-  if (!productModal) return;
-  productModal.hidden = true;
-  document.body.style.overflow = "";
-}
-
-function decorateProductCards() {
-  cards.forEach((card) => {
-    if (card.querySelector(".product-card-actions")) return;
-
-    const actions = document.createElement("div");
-    actions.className = "product-card-actions";
-    actions.innerHTML = `
-      <span>
-        <strong data-card-action data-i18n="card.viewDetails">View details</strong>
-        <small data-card-action-hint data-i18n="card.hint">Specs and quote options</small>
-      </span>
-      <a href="index.html#quote" data-card-quote data-i18n="card.quote">Request quote</a>
-    `;
-
-    actions.querySelector("[data-card-quote]").addEventListener("click", (event) => {
-      event.stopPropagation();
-      prepareQuote(getProductFromCard(card));
-    });
-
-    card.querySelector(".product-body")?.append(actions);
-    card.tabIndex = 0;
-    card.setAttribute("role", "button");
-    card.setAttribute("aria-label", card.querySelector("h3")?.textContent?.trim() || "View product details");
-    card.addEventListener("click", () => openProductDetail(card));
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openProductDetail(card);
-      }
-    });
-  });
-}
-
-filters.forEach((filter) => {
-  filter.addEventListener("click", () => setCategory(filter.dataset.filter));
-});
-
-typeChips.forEach((chip) => {
-  chip.addEventListener("click", () => setType(chip.dataset.type));
-});
-
-productSearch?.addEventListener("input", () => {
-  productState.query = productSearch.value.trim().toLowerCase();
-  applyProductFilters();
-});
-
-resetFilterButtons.forEach((button) => {
-  button.addEventListener("click", resetFilters);
-});
-
-smartTabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const selected = tab.dataset.smart;
-    smartTabs.forEach((item) => item.classList.toggle("active", item === tab));
-    smartPanels.forEach((panel) => {
-      panel.classList.toggle("active", panel.dataset.smartPanel === selected);
-    });
-  });
-});
-
-productModal?.addEventListener("click", (event) => {
-  if (event.target.closest("[data-close-product]")) closeProductDetail();
-});
-
-document.querySelector("[data-request-product]")?.addEventListener("click", () => {
-  prepareQuote(currentProduct);
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && productModal && !productModal.hidden) closeProductDetail();
-});
-
-decorateProductCards();
-if (cards.length) applyProductFilters();
-
-// ==========================================
-// TRANSLATION (i18n) ENGINE & DICTIONARY
-// ==========================================
-
+/* ---- i18n Translations ---- */
 const translations = {
   en: {
-    "brand.name": "Nashwan Al-Faqih",
-    "brand.subtitle": "Yemen Building Solutions",
-    "brand.catalog": "General Product Catalog",
-    "brand.factory": "Smart Home Factory Partner",
-    "nav.home": "Home",
-    "nav.solutions": "Solutions",
-    "nav.products": "General Catalog",
-    "nav.smartHome": "Smart Home Factory",
-    "nav.quote": "Request Quote",
-    "language.btn": "Arabic",
-    "hero.eyebrow": "Premium Plumbing & Building Solutions in Yemen",
-    "hero.title": "Complete water supply and drainage solutions for modern projects.",
-    "hero.text": "Nashwan Al-Faqih provides contractors, plumbers, retailers, and homeowners across Yemen with durable pipes, fittings, sanitary ware, valves, accessories, and project supply packages selected for local site conditions.",
-    "hero.catalogCta": "Browse General Catalog",
-    "hero.factoryCta": "Explore Smart Home Factory",
-    "hero.cardValue": "Yemen",
-    "hero.cardLabel": "Project-ready supply",
-    "hero.stat1Value": "6",
-    "hero.stat1Label": "Core product lines",
-    "hero.stat2Value": "100+",
-    "hero.stat2Label": "Catalog items",
-    "hero.stat3Value": "Yemen",
-    "hero.stat3Label": "Market focus",
-    "intro.eyebrow": "Complete project supply",
-    "intro.title": "A practical partner for contractors, plumbers, stores, and homeowners.",
-    "intro.text": "Find exactly what your project demands. From robust water supply and drainage networks to elegant sanitary ware and reliable accessories, we supply high-quality materials engineered for the Yemeni market.",
-    "products.eyebrow": "Choose your catalog",
-    "products.title": "Two focused paths for faster buying decisions.",
-    "products.lede": "General plumbing inventory and Smart Home factory drainage products now live on dedicated pages, making it easier for buyers to compare, filter, and request the right package.",
-    "products.promise1": "Fast product matching",
-    "products.promise2": "Quote-ready selections",
-    "products.promise3": "Project package support",
-    "teaser1.tag": "General Catalog",
-    "teaser1.title": "Water supply, sanitary ware, valves, adhesives, and accessories.",
-    "teaser1.text": "Browse a focused inventory for villas, buildings, retail counters, maintenance work, and contractor supply packages.",
-    "teaser1.cta": "Browse General Catalog",
-    "teaser2.tag": "Factory Partner",
-    "teaser2.title": "Smart Home PVC-U drainage systems for indoor and outdoor applications.",
-    "teaser2.text": "Explore pipes, fittings, drains, outdoor channels, inspection chambers, and backwater protection from the Smart Home range.",
-    "teaser2.cta": "Explore Smart Home Factory",
-    "quality.eyebrow": "Quality assurance",
-    "quality.title": "Certified Quality & Project Confidence",
-    "quality.text": "We supply products that meet rigorous testing and production standards. From quality materials to recognized certifications, we provide supplies that offer long-lasting performance and peace of mind for important projects.",
-    "quality.item1Title": "Tested product systems",
-    "quality.item1Text": "Products are positioned around durability, pressure performance, installation reliability, and long service life.",
-    "quality.item2Title": "Recognized standards",
-    "quality.item2Text": "Quality programs and product approvals help buyers specify materials with confidence.",
-    "quality.item3Title": "Yemen project support",
-    "quality.item3Text": "We help customers select compatible pipes, fittings, drainage, valves, and accessories for each project.",
-    "services.eyebrow": "Services",
-    "services.title": "More than a product list.",
-    "services.item1Title": "Complete project packages",
-    "services.item1Text": "Coordinate water supply, drainage, accessories, and sanitary items in one clear quote.",
-    "services.item2Title": "Technical guidance",
-    "services.item2Text": "Support plumbers and contractors with product matching and installation choices.",
-    "services.item3Title": "Bulk supply",
-    "services.item3Text": "Prepare organized requests for villas, buildings, stores, and industrial projects.",
-    "services.item4Title": "Buyer support",
-    "services.item4Text": "Help homeowners and retailers choose practical, compatible materials before purchase.",
-    "quote.eyebrow": "Yemen inquiries",
-    "quote.title": "Request products, quantities, or a project package.",
-    "quote.text": "Get in touch with our team today for a tailored quote. Provide your project details, required quantities, and location, and we will prepare a comprehensive package for you.",
-    "quote.phone": "Phone: +967 000 000 000",
-    "quote.whatsapp": "WhatsApp: +967 000 000 000",
-    "quote.address": "Address: Yemen - add your branch address here",
-    "form.name": "Name",
-    "form.product": "Product Needed",
-    "form.message": "Message",
-    "form.submit": "Send Request",
-    "form.option1": "Water supply systems",
-    "form.option2": "Drainage solutions",
-    "form.option3": "Sanitary ware",
-    "form.option4": "Valves and accessories",
-    "form.option5": "Complete project package",
-    "footer.name": "Nashwan Al-Faqih",
-    "footer.text": "Yemen catalog for water supply, drainage, sanitary ware, valves, fittings, adhesives, and accessories.",
-    "footer.quote": "Request a quote",
-    "footer.smartQuote": "Request a Smart Home factory quote",
-    "catalog.eyebrow": "General inventory",
-    "catalog.heroTitle": "Reliable plumbing and building materials for projects across Yemen.",
-    "catalog.heroText": "Filter water supply systems, sanitary ware, valves, adhesives, and accessories to find the right materials for villas, buildings, shops, maintenance work, and contractor supply orders.",
-    "catalog.browseBtn": "Browse Products",
-    "catalog.quoteBtn": "Request Package Quote",
-    "catalog.eyebrow2": "Browse by need",
-    "catalog.title2": "General catalog for fast product selection.",
-    "catalog.lede2": "Every item below is written for buyer clarity: what it is, where it fits, and why it belongs in a durable project package.",
-    "catalog.promise1": "Contractor-ready stock",
-    "catalog.promise2": "Retail-friendly categories",
-    "catalog.promise3": "Quote-ready product cards",
-    "tools.step1": "1. Choose category",
-    "tools.step2": "2. Search products",
-    "tools.step3": "3. Narrow by type",
-    "tools.searchHolder": "Search products",
-    "tools.reset": "Reset filters",
-    "filter.all": "All",
-    "filter.water": "Water Supply",
-    "filter.sanitary": "Sanitary Ware",
-    "filter.valves": "Valves",
-    "filter.adhesives": "Adhesives",
-    "filter.accessories": "Accessories",
-    "type.pipes": "Pipes",
-    "type.fittings": "Fittings",
-    "empty.title": "No products match this view.",
-    "empty.text": "Try clearing the search or choosing a wider product category.",
-    "prod.ppr.title": "PP-R Pressure Pipe Systems",
-    "prod.ppr.text": "Durable hot and cold water pipe systems for homes, buildings, stores, and light commercial projects.",
-    "prod.pprct.title": "PP-RCT Heavy Duty Lines",
-    "prod.pprct.text": "High-performance pipe options for larger networks, technical installations, and demanding project specifications.",
-    "prod.uv.title": "UV-Resistant Multilayer Pipes",
-    "prod.uv.text": "Outdoor-ready piping built for sun exposure, pressure stability, and long service life in harsh climates.",
-    "prod.fittings.title": "Tee, Elbow, Socket, and Reducer Fittings",
-    "prod.fittings.text": "Essential fittings for clean distribution layouts, maintenance access, and reliable installation work.",
-    "prod.wash.title": "Matte Tabletop Washbasins",
-    "prod.wash.text": "Premium washbasin selections for villas, apartments, showrooms, hotels, and modern renovations.",
-    "prod.dual.title": "Dual Finish Sanitary Sets",
-    "prod.dual.text": "Elegant sanitary ware sets for full bathroom displays and premium project supply packages.",
-    "prod.ball.title": "Ball Valves",
-    "prod.ball.text": "Reliable shutoff valves for water control, service points, and practical installation work.",
-    "prod.concealed.title": "Concealed Valves",
-    "prod.concealed.text": "Clean wall-mounted control options for bathrooms, hidden plumbing points, and modern interiors.",
-    "prod.tech.title": "Technical Valves and Filters",
-    "prod.tech.text": "Network control products for regulating service points, filtration, and technical plumbing lines.",
-    "prod.adhesives.title": "Adhesives and Solvent Cement Support",
-    "prod.adhesives.text": "Installation support materials for secure joints, reliable maintenance, and professional finishing.",
-    "prod.clamps.title": "Clamps, Inserts, and Accessories",
-    "prod.clamps.text": "Support products that help plumbers complete neat, stable, and compatible installations.",
-    "prod.flange.title": "Flange Adaptors and Manifolds",
-    "prod.flange.text": "Connection products for linking pipe systems to valves, pumps, and larger project infrastructure.",
-    "spec.material": "Material",
-    "spec.protection": "Protection",
-    "spec.types": "Types",
-    "spec.finish": "Finish",
-    "spec.range": "Range",
-    "spec.ready": "Ready for",
-    "spec.use": "Use",
-    "spec.use1": "Hot and cold water",
-    "spec.use2": "Main water networks",
-    "spec.use3": "Outdoor water lines",
-    "spec.use4": "Branching and routing",
-    "spec.uv": "UV resistant",
-    "spec.types1": "Tee, elbow, socket",
-    "spec.f1": "Matte black",
-    "spec.f2": "Dual glaze",
-    "spec.f3": "Chrome",
-    "spec.u1": "Modern bathrooms",
-    "spec.u2": "Bathroom packages",
-    "spec.u3": "Water control",
-    "spec.u4": "Bathroom control",
-    "spec.u5": "Network control",
-    "spec.u6": "Joint support",
-    "spec.u7": "Project completion",
-    "spec.u8": "System connection",
-    "spec.m1": "Brass, chrome",
-    "spec.r1": "Y filter, seated valve",
-    "spec.r2": "Clamps, inserts",
-    "spec.re1": "Site installation",
-    "spec.re2": "Project orders",
-    "smart.eyebrow": "Manufacturing partner",
-    "smart.heroTitle": "Smart Home PVC-U drainage systems built for reliable indoor and outdoor performance.",
-    "smart.heroText": "Smart Home is presented as a dedicated factory partner for non-pressure wastewater and rainwater drainage systems. The range supports contractors, plumbers, and homeowners with lightweight PVC-U components, strong chemical resistance, smooth internal flow, inspection access, and practical sizes from 32mm to 160mm.",
-    "smart.btn1": "View Smart Home Products",
-    "smart.btn2": "Request Factory Range Quote",
-    "smart.introEyebrow": "Factory quality",
-    "smart.introTitle": "Designed for high-flow capacity, installation speed, and long-term building protection.",
-    "smart.introText": "Smart Home drainage products are organized for professional site work: pipes for main wastewater runs, fittings for clean direction changes and branches, floor drains for wet areas, and outdoor solutions for rainwater management, inspection, and backflow protection.",
-    "smart.qualEyebrow": "Standards and confidence",
-    "smart.qualTitle": "Factory-made drainage solutions for demanding projects.",
-    "smart.qualText": "The Smart Home range is selected for practical installation, consistent component compatibility, smooth water flow, chemical resistance, and inspection-friendly maintenance. It gives Yemeni contractors and plumbers a complete drainage family from one recognizable manufacturing partner.",
-    "smart.list1Title": "Complete PVC-U system",
-    "smart.list1Text": "Pipes, fittings, drains, channels, chambers, and protection products work together across project sizes.",
-    "smart.list2Title": "Installer-friendly parts",
-    "smart.list2Text": "Lightweight components and clear product families support faster handling and cleaner installation on site.",
-    "smart.list3Title": "Indoor and outdoor coverage",
-    "smart.list3Text": "Use the range for wastewater lines, rainwater drainage, inspection points, and outdoor water management.",
-    "smart.gridEyebrow": "Smart Home product range",
-    "smart.gridTitle": "A complete, high-performance PVC-U drainage family.",
-    "smart.gridText": "Browse Smart Home products by practical site category. Every product shown here belongs to the Smart Home factory range and is focused exclusively on drainage, wastewater, rainwater, and inspection solutions.",
-    "smart.tab.pipes": "PVC-U Pipes",
-    "smart.tab.fittings": "Fittings",
-    "smart.tab.drains": "Floor Drains",
-    "smart.tab.outdoor": "Outdoor Solutions",
-    "smart.p1": "PVC-U Pipes",
-    "smart.p2": "Multi-Layer Pipes",
-    "smart.p3": "Ring Socket Pipes",
-    "smart.p4": "Solvent Cement Pipes",
-    "smart.p5": "PVC Drain Upper Section",
-    "smart.p6": "Pipe Plug",
-    "smart.f1": "Elbow 87.5°",
-    "smart.f2": "Elbow 45°",
-    "smart.f3": "Elbow with Access Door",
-    "smart.f4": "Tee 87.5°",
-    "smart.f5": "Tee 45°",
-    "smart.f6": "Tee with Access Door",
-    "smart.f7": "Cross 45°",
-    "smart.f8": "Short Cross 87.5°",
-    "smart.f9": "Socket",
-    "smart.f10": "Socket with Inner Thread",
-    "smart.f11": "Eccentric Reducer",
-    "smart.f12": "Expansion Joint",
-    "smart.d1": "Small Drain",
-    "smart.d2": "Drain 8.8 cm",
-    "smart.d3": "Drain 7 cm",
-    "smart.d4": "Drain with Odor Trap",
-    "smart.d5": "Floor Drain with Odor Trap",
-    "smart.d6": "Floor Drain Cover",
-    "smart.d7": "Floor Drain Plug",
-    "smart.d8": "Rain Drain with Cover",
-    "smart.d9": "Siphon",
-    "smart.o1": "Outdoor Solutions",
-    "smart.o2": "Inspection Chamber 500mm",
-    "smart.o3": "Inspection Chamber Ø600mm",
-    "smart.o4": "Inspection Point Drain",
-    "smart.o5": "Water Channel with Cast Iron Cover",
-    "smart.o6": "Drainage Collector",
-    "smart.o7": "Drainage Lifting Station",
-    "smart.o8": "Gully Trap",
-    "smart.o9": "Backwater Valves",
-    "smart.o10": "Air Vent",
-    "smart.note.title": "Applications and features",
-    "smart.note.text": "Use Smart Home products for wastewater, rainwater, air-conditioning drainage, and main drainage lines. The range supports smooth internal surfaces, easy handling, high flow, inspection access, and long-term durability.",
-    "card.viewDetails": "View details",
-    "card.hint": "Specs and quote options",
-    "card.quote": "Request quote",
-    "modal.close": "Close",
-    "modal.kicker": "Selected product",
-    "modal.specs": "Quick specs",
-    "modal.loc": "Catalog location",
-    "modal.type": "Product type",
-    "modal.avail": "Availability",
-    "modal.availText": "Yemen supply / request quote",
-    "modal.cont": "Continue browsing"
+    'brand.name': 'Nashwan Al-Faqih',
+    'brand.subtitle': 'Plumbing & Building Solutions',
+    'brand.aria': 'Nashwan Al-Faqih home',
+    'nav.home': 'Home',
+    'nav.solutions': 'Solutions',
+    'nav.products': 'Products',
+    'nav.smart': 'Smart Home',
+    'nav.banninger': 'Bänninger',
+    'nav.kessel': 'Kessel',
+    'nav.brands': 'Brands',
+    'nav.about': 'About Us',
+    'nav.quote': 'Request Quote',
+
+    'hero.badge': "Yemen's Trusted Building Partner",
+    'hero.title': 'Complete Plumbing &\nBuilding Solutions',
+    'hero.desc': 'From robust water supply systems to elegant sanitary ware — we supply high-quality materials engineered for Yemen\'s most demanding projects.',
+    'hero.cta1': 'Browse Our Products',
+    'hero.cta2': 'Smart Home Factory',
+    'hero.stat1': 'Product Lines',
+    'hero.stat2': 'Core Categories',
+    'hero.stat3': 'Wide Coverage',
+    'hero.card1': 'Sanitary Ware',
+    'hero.card2': 'Valves',
+    'hero.card3': 'PP-R Pipes',
+    'hero.card4': 'Smart Home',
+
+    'solutions.eyebrow': 'What We Offer',
+    'solutions.title': 'Comprehensive Building & Plumbing Solutions',
+    'solutions.desc': 'We supply everything your project needs, from initial planning through to final installation. Serving contractors, plumbers, retailers, and homeowners across Yemen.',
+
+    'sol1.title': 'Water Supply Systems',
+    'sol1.desc': 'Complete PP-R and multilayer pipe systems for hot and cold water supply in residential and commercial buildings.',
+    'sol1.link': 'Explore Products →',
+    'sol2.title': 'Drainage Solutions',
+    'sol2.desc': 'Smart Home factory PVC-U drainage systems for indoor and outdoor applications, including channels and inspection chambers.',
+    'sol2.link': 'View Smart Home →',
+    'sol3.title': 'Sanitary Ware',
+    'sol3.desc': 'Premium quality washbasins, toilets, and bathroom accessories from leading manufacturers, suited for modern Yemeni homes.',
+    'sol3.link': 'Browse Catalog →',
+    'sol4.title': 'Valves & Fittings',
+    'sol4.desc': 'Ball valves, check valves, reducers, elbows, tees, and all fittings required for complete plumbing installations.',
+    'sol4.link': 'View All Fittings →',
+    'sol5.title': 'Adhesives & Accessories',
+    'sol5.desc': 'PVC solvent cement, CPVC adhesives, pipe clamps, and all accessories for secure, long-lasting plumbing connections.',
+    'sol5.link': 'Shop Accessories →',
+    'sol6.title': 'Project Packages',
+    'sol6.desc': 'Complete supply coordination for villas, residential buildings, and commercial projects. One quote, everything included.',
+    'sol6.link': 'Request Package →',
+
+    'catalog.eyebrow': 'Product Catalogs',
+    'catalog.title': 'Two Specialized Catalogs for Your Needs',
+    'cat.badge1': 'General Catalog',
+    'cat.title1': 'Water Supply, Sanitary Ware & Accessories',
+    'cat.desc1': 'Browse our comprehensive inventory of pipes, fittings, valves, sanitary ware, and accessories — everything for plumbing projects across Yemen.',
+    'cat.f1a': 'PP-R & Multilayer Pipes',
+    'cat.f1b': 'Ball Valves & Check Valves',
+    'cat.f1c': 'Sanitary Ware & Fixtures',
+    'cat.f1d': 'Adhesives & Accessories',
+    'cat.cta1': 'Browse General Catalog',
+    'cat.badge2': 'Factory Partner',
+    'cat.title2': 'Smart Home PVC-U Drainage Systems',
+    'cat.desc2': "Explore Smart Home factory's complete drainage solution — pipes, fittings, drains, outdoor channels, inspection chambers and backwater protection.",
+    'cat.f2a': 'Indoor Drainage Systems',
+    'cat.f2b': 'Outdoor Channel Solutions',
+    'cat.f2c': 'Inspection Chambers',
+    'cat.f2d': 'Backwater Valves',
+    'cat.cta2': 'Explore Smart Home Factory',
+
+    'why.eyebrow': 'Why Choose Us',
+    'why.title': 'Your Reliable Partner for Quality Building Materials',
+    'why.desc': "Nashwan Al-Faqih is committed to supplying only tested, certified materials that meet rigorous standards for Yemen's diverse project requirements.",
+    'why.item1title': 'Certified Product Quality',
+    'why.item1desc': 'All products are sourced from manufacturers with recognized quality programs and international product approvals.',
+    'why.item2title': 'Technical Expertise',
+    'why.item2desc': 'Our team provides expert guidance for product selection and project-specific material matching.',
+    'why.item3title': 'Yemen-Wide Supply',
+    'why.item3desc': 'We serve contractors, plumbers, retailers, and homeowners across Yemen with organized bulk supply and project packages.',
+    'why.badge': 'Project-Ready',
+
+    'feat.eyebrow': 'Top Products',
+    'feat.title': 'Popular Across Yemen Projects',
+    'feat.cta': 'View All Products',
+    'fp.cat1': 'Valves', 'fp.name1': 'Ball Valve',
+    'fp.cat2': 'Fittings', 'fp.name2': 'Elbow 90°',
+    'fp.cat3': 'Pipes', 'fp.name3': 'PP-R Pipe PN20',
+    'fp.cat4': 'Fittings', 'fp.name4': 'Tee 90°',
+    'fp.cat5': 'Fittings', 'fp.name5': 'Union Female Thread',
+    'fp.cat6': 'Valves', 'fp.name6': 'Check Valve – PPR',
+
+    'quote.eyebrow': 'Get In Touch',
+    'quote.title': 'Request a Quote for Your Project',
+    'quote.desc': 'Whether you\'re a contractor, retailer, or homeowner — we\'ll prepare a comprehensive package tailored to your specific project needs.',
+    'contact.phoneLabel': 'Phone',
+    'contact.waLabel': 'WhatsApp',
+    'contact.addrLabel': 'Address',
+    'contact.addr': "Yemen, Sana'a — Add Branch Address",
+
+    'form.nameLabel': 'Full Name',
+    'form.namePh': 'Your name',
+    'form.phoneLabel': 'Phone Number',
+    'form.phonePh': '+967 000 000 000',
+    'form.productLabel': 'Product Category',
+    'form.selectDefault': 'Select a category',
+    'form.opt1': 'Water Supply Systems',
+    'form.opt2': 'Drainage Solutions',
+    'form.opt3': 'Sanitary Ware',
+    'form.opt4': 'Valves & Fittings',
+    'form.opt5': 'Smart Home Factory',
+    'form.opt6': 'Complete Project Package',
+    'form.messageLabel': 'Project Details',
+    'form.messagePh': 'Describe your project: location, quantities, sizes, or any specific requirements',
+    'form.submit': 'Send Request',
+    'form.note': "We'll respond within 24 hours with a detailed quote.",
+
+    'footer.tagline': "Yemen's trusted supplier of premium plumbing, drainage, and building materials.",
+    'footer.productsTitle': 'Products',
+    'footer.waterSupply': 'Water Supply Systems',
+    'footer.drainage': 'Drainage Solutions',
+    'footer.sanitary': 'Sanitary Ware',
+    'footer.valves': 'Valves & Fittings',
+    'footer.adhesives': 'Adhesives',
+    'footer.servicesTitle': 'Services',
+    'footer.quoteLink': 'Request a Quote',
+    'footer.packages': 'Project Packages',
+    'footer.technical': 'Technical Guidance',
+    'footer.smartHome': 'Smart Home Factory',
+    'footer.contactTitle': 'Contact',
+    'footer.addr': "📍 Yemen, Sana'a",
+    'footer.copy': '© 2025 Nashwan Al-Faqih. All Rights Reserved. Plumbing & Building Solutions — Yemen.',
+    'footer.catalog': 'Products Catalog',
+    'footer.smLink': 'Smart Home',
+    'brand.banninger': 'Bänninger (Germany)',
+    'brand.smarthome': 'Smart Home Factory',
+    'brand.kessel': 'Kessel (Germany)',
+    'brand.ece': 'ECE Sanitary Ware',
+    'tools.brandLabel': 'Brand',
+    'prod.kessel.drainTitle': 'Kessel EasyDrain Floor Drains',
+    'prod.kessel.drainDesc': 'Premium stainless steel shower channels and floor drains with high flow rates and reliable odor trap systems.',
+    'prod.kessel.valveTitle': 'Kessel Staufix Backwater Valves',
+    'prod.kessel.valveDesc': 'Automatic backwater protection valves designed to prevent sewer reflux and backup flooding in modern buildings.',
+    'prod.kessel.stationTitle': 'Kessel Drainage Lifting Stations',
+    'prod.kessel.stationDesc': 'Reliable lifting stations for wastewater drainage below the backwater level, suitable for heavy-duty applications.',
+
+    /* Fitting Splits translations */
+    'prod.tee90.title': 'Bänninger PP-R Equal Tee 90°',
+    'prod.tee90.text': 'Equal tee fittings for branching PP-R pipe networks.',
+    'prod.elbow90.title': 'Bänninger PP-R Elbow 90°',
+    'prod.elbow90.text': 'Standard 90 degree elbows for pipe direction changes.',
+    'prod.elbow45.title': 'Bänninger PP-R Elbow 45°',
+    'prod.elbow45.text': 'Standard 45 degree elbows for gentle pipe turns.',
+    'prod.socket.title': 'Bänninger PP-R Socket',
+    'prod.socket.text': 'Standard socket couplings for joining PP-R pipes.',
+    'prod.reducer.title': 'Bänninger PP-R Reducer',
+    'prod.reducer.text': 'Reducing sockets for transitioning between pipe sizes.',
+    'prod.unionfemale.title': 'Bänninger PP-R Union Female Thread',
+    'prod.unionfemale.text': 'Threaded union with female brass insert for equipment connection.',
+    'prod.unionmale.title': 'Bänninger PP-R Union Male Thread',
+    'prod.unionmale.text': 'Threaded union with male brass insert for equipment connection.',
+    'prod.unionfemaleblack.title': 'Bänninger PP-R Union Female Black (UV)',
+    'prod.unionfemaleblack.text': 'UV-resistant black union with female brass insert for outdoor lines.',
+    'prod.unionmaleblack.title': 'Bänninger PP-R Union Male Black (UV)',
+    'prod.unionmaleblack.text': 'UV-resistant black union with male brass insert for outdoor lines.',
+    'prod.checkppr.title': 'Bänninger PP-R Check Valve (Double Ends)',
+    'prod.checkppr.text': 'Backflow prevention check valve with double PP-R socket ends.',
+    'prod.checkfemale.title': 'Bänninger PP-R Check Valve (PPR & Female)',
+    'prod.checkfemale.text': 'Backflow prevention check valve with PPR × female brass thread.',
+    'prod.checkmale.title': 'Bänninger PP-R Check Valve (PPR & Male)',
+    'prod.checkmale.text': 'Backflow prevention check valve with PPR × male brass thread.',
+    'prod.checkblack.title': 'Bänninger PP-R Check Valve Black (UV)',
+    'prod.checkblack.text': 'UV-resistant black check valve with double PPR ends for outdoor protection.',
+    'prod.manifold4.title': 'Bänninger PP-R Manifold (4 Outlets)',
+    'prod.manifold4.text': 'Welded distribution manifold with 4 outlets for compact setups.',
+    'prod.manifoldend.title': 'Bänninger PP-R Manifold End Socket',
+    'prod.manifoldend.text': 'Manifold termination end socket with welding connection.',
+    'prod.flange.title': 'Bänninger PP-RCT Flange Adaptor (Grooved)',
+    'prod.flange.text': 'Flange adaptors for joining PP-RCT pipes to pumps or valves.',
+    'prod.flangering.title': 'Bänninger PP Flange Backing Ring',
+    'prod.flangering.text': 'Metal reinforced backing ring for flange connection support.',
+    'prod.manifoldnoend.title': 'Bänninger PP-R Manifold (Open Ends)',
+    'prod.manifoldnoend.text': 'Distribution manifold without end socket for custom extensions.',
+    'prod.bracketfemale.title': 'Bänninger PP-R Bracket Elbow Female',
+    'prod.bracketfemale.text': 'Wall bracket elbows for tap and fixture connections.',
+    'prod.doublebracket.title': 'Bänninger PP-R Double Bracket Elbow',
+    'prod.doublebracket.text': 'Double wall bracket elbows for shower mixer connections.',
+
+    /* Smart Home page translations */
+    'smart.factoryLabel': 'Factory Partner',
+    'smart.heroTitle': 'Smart Home PVC-U Drainage Systems for Yemen',
+    'smart.heroText': 'Smart Home is a dedicated factory partner for non-pressure wastewater and rainwater drainage systems. The range supports contractors, plumbers, and homeowners with lightweight PVC-U components, strong chemical resistance, smooth internal flow, and practical sizes from 32mm to 160mm.',
+    'smart.btn1': 'View Products',
+    'smart.btn2': 'Request Factory Quote',
+    'smart.list1Title': 'Complete PVC-U System',
+    'smart.list1Text': 'Pipes, fittings, drains, channels, chambers, and protection products work together across project sizes.',
+    'smart.list2Title': 'Installer-Friendly Parts',
+    'smart.list2Text': 'Lightweight components and clear product families support faster handling and cleaner installation on site.',
+    'smart.list3Title': 'Indoor & Outdoor Coverage',
+    'smart.list3Text': 'Use the range for wastewater lines, rainwater drainage, inspection points, and outdoor water management.',
+    'smart.introEyebrow': 'Factory Quality',
+    'smart.introTitle': 'Designed for High-Flow Capacity, Installation Speed & Long-Term Protection',
+    'smart.introText': 'Smart Home drainage products are organized for professional site work: pipes for main wastewater runs, fittings for clean direction changes and branches, floor drains for wet areas, and outdoor solutions for rainwater management, inspection, and backflow protection.',
+    'si.b1': 'Wastewater & rainwater drainage',
+    'si.b2': 'Sizes 32mm to 160mm',
+    'si.b3': 'Chemical resistance & smooth internal flow',
+    'si.b4': 'Inspection access built in',
+    'smart.gridEyebrow': 'Smart Home Product Range',
+    'smart.gridTitle': 'A Complete, High-Performance PVC-U Drainage Family',
+    'smart.gridText': 'Browse Smart Home products by practical site category. Every product shown belongs to the Smart Home factory range — focused exclusively on drainage, wastewater, rainwater, and inspection solutions.',
+    'smart.tab.pipes': 'PVC-U Pipes',
+    'smart.tab.fittings': 'Fittings',
+    'smart.tab.drains': 'Floor Drains',
+    'smart.tab.outdoor': 'Outdoor Solutions',
+
+    /* Smart Home Pipe Cards */
+    'smart.p1': 'PVC-U Pipes',
+    'smart.p2': 'Multi-Layer Pipes',
+    'smart.p3': 'Ring Socket Pipes',
+    'smart.p4': 'Solvent Cement Pipes',
+    'smart.p5': 'PVC Drain Upper Section',
+    'smart.p6': 'Pipe Plug',
+
+    /* Smart Home Fitting Cards */
+    'smart.f1': 'Elbow 87.5°',
+    'smart.f2': 'Elbow 45°',
+    'smart.f3': 'Elbow with Access Door',
+    'smart.f4': 'Tee 87.5°',
+    'smart.f5': 'Tee 45°',
+    'smart.f6': 'Tee with Access Door',
+    'smart.f7': 'Cross 45°',
+    'smart.f8': 'Short Cross 87.5°',
+    'smart.f9': 'Socket',
+    'smart.f10': 'Socket with Inner Thread',
+    'smart.f11': 'Eccentric Reducer',
+    'smart.f12': 'Expansion Joint',
+    'smart.f13': 'Short Elbow 87.5°',
+    'smart.f14': 'Repairing Socket',
+    'smart.f15': 'Reducing Bush',
+
+    /* Smart Home Floor Drain Cards */
+    'smart.d1': 'Small Drain',
+    'smart.d2': 'Drain 8.8 cm',
+    'smart.d3': 'Drain 7 cm',
+    'smart.d4': 'Drain with Odor Trap',
+    'smart.d5': 'Floor Drain with Odor Trap',
+    'smart.d6': 'Floor Drain Cover',
+    'smart.d7': 'Floor Drain Plug',
+    'smart.d8': 'Rain Drain with Cover',
+    'smart.d9': 'Siphon',
+
+    /* Smart Home Outdoor Cards */
+    'smart.o1': 'Outdoor Solutions Overview',
+    'smart.o2': 'Inspection Chamber 500mm',
+    'smart.o3': 'Inspection Chamber Ø600mm',
+    'smart.o4': 'Inspection Point Drain',
+    'smart.o5': 'Water Channel with Cast Iron Cover',
+    'smart.o6': 'Drainage Collector',
+    'smart.o7': 'Drainage Lifting Station',
+    'smart.o8': 'Gully Trap',
+    'smart.o9': 'Backwater Valves',
+    'smart.o10': 'Air Vent',
+
+    'smart.note.title': 'Applications & Features',
+    'smart.note.text': 'Use Smart Home products for wastewater, rainwater, air-conditioning drainage, and main drainage lines. The range supports smooth internal surfaces, easy handling, high flow, inspection access, and long-term durability.',
+    'cta.smartTitle': 'Request the Smart Home Factory Range',
+    'cta.smartDesc': 'Get a comprehensive quote for all Smart Home drainage products you need for your project.',
   },
+
   ar: {
-    "brand.name": "نشوان الفقيه",
-    "brand.subtitle": "لحلول البناء - اليمن",
-    "brand.catalog": "الكتالوج العام للمنتجات",
-    "brand.factory": "شريك مصنع سمارت هوم",
-    "nav.home": "الرئيسية",
-    "nav.solutions": "الحلول",
-    "nav.products": "الكتالوج العام",
-    "nav.smartHome": "مصنع سمارت هوم",
-    "nav.quote": "طلب تسعيرة",
-    "language.btn": "English",
-    "hero.eyebrow": "حلول السباكة والبناء الممتازة في اليمن",
-    "hero.title": "حلول متكاملة لإمدادات المياه والصرف الصحي للمشاريع الحديثة.",
-    "hero.text": "يوفر نشوان الفقيه للمقاولين والسباكين وتجار التجزئة وأصحاب المنازل في جميع أنحاء اليمن أنابيب، وتجهيزات، وأدوات صحية، وصمامات، وإكسسوارات متينة ومختارة لتناسب ظروف المواقع المحلية.",
-    "hero.catalogCta": "تصفح الكتالوج العام",
-    "hero.factoryCta": "استكشف مصنع سمارت هوم",
-    "hero.cardValue": "اليمن",
-    "hero.cardLabel": "توريد جاهز للمشاريع",
-    "hero.stat1Value": "6",
-    "hero.stat1Label": "خطوط إنتاج أساسية",
-    "hero.stat2Value": "+100",
-    "hero.stat2Label": "عنصر في الكتالوج",
-    "hero.stat3Value": "اليمن",
-    "hero.stat3Label": "التركيز في السوق",
-    "intro.eyebrow": "توريد متكامل للمشاريع",
-    "intro.title": "شريك عملي للمقاولين، السباكين، المتاجر، وأصحاب المنازل.",
-    "intro.text": "اعثر على ما يتطلبه مشروعك بالضبط. من شبكات إمدادات المياه والصرف الصحي القوية إلى الأدوات الصحية الأنيقة والإكسسوارات الموثوقة، نوفر مواد عالية الجودة مصممة للسوق اليمني.",
-    "products.eyebrow": "اختر الكتالوج الخاص بك",
-    "products.title": "مساران مخصصان لاتخاذ قرارات شراء أسرع.",
-    "products.lede": "الآن يوجد كتالوج السباكة العام ومنتجات الصرف الصحي لمصنع سمارت هوم في صفحات مخصصة، مما يسهل على المشترين المقارنة والفلترة وطلب الحزمة المناسبة.",
-    "products.promise1": "مطابقة سريعة للمنتجات",
-    "products.promise2": "خيارات جاهزة للتسعير",
-    "products.promise3": "دعم حزم المشاريع",
-    "teaser1.tag": "الكتالوج العام",
-    "teaser1.title": "إمدادات المياه، الأدوات الصحية، الصمامات، المواد اللاصقة، والإكسسوارات.",
-    "teaser1.text": "تصفح مخزوناً مخصصاً للفلل، المباني، المتاجر، أعمال الصيانة، وحزم توريد المقاولين.",
-    "teaser1.cta": "تصفح الكتالوج العام",
-    "teaser2.tag": "شريك التصنيع",
-    "teaser2.title": "أنظمة الصرف الصحي PVC-U من سمارت هوم للتطبيقات الداخلية والخارجية.",
-    "teaser2.text": "استكشف الأنابيب، التوصيلات، المصارف، القنوات الخارجية، غرف التفتيش، وحماية الارتداد من مجموعة سمارت هوم.",
-    "teaser2.cta": "استكشف مصنع سمارت هوم",
-    "quality.eyebrow": "ضمان الجودة",
-    "quality.title": "جودة معتمدة وثقة في المشاريع",
-    "quality.text": "نحن نوفر منتجات تلبي معايير الاختبار والإنتاج الصارمة. من المواد عالية الجودة إلى الشهادات المعتمدة، نقدم إمدادات توفر أداءً طويل الأمد وراحة بال للمشاريع المهمة.",
-    "quality.item1Title": "أنظمة منتجات مختبرة",
-    "quality.item1Text": "تركز المنتجات على المتانة، أداء الضغط، موثوقية التركيب، وعمر الخدمة الطويل.",
-    "quality.item2Title": "معايير معترف بها",
-    "quality.item2Text": "تساعد برامج الجودة وموافقات المنتجات المشترين على تحديد المواد بثقة.",
-    "quality.item3Title": "دعم المشاريع في اليمن",
-    "quality.item3Text": "نحن نساعد العملاء على اختيار الأنابيب والتوصيلات والصرف والصمامات والإكسسوارات المتوافقة لكل مشروع.",
-    "services.eyebrow": "الخدمات",
-    "services.title": "أكثر من مجرد قائمة منتجات.",
-    "services.item1Title": "حزم مشاريع متكاملة",
-    "services.item1Text": "نسق إمدادات المياه، الصرف الصحي، الإكسسوارات، والأدوات الصحية في تسعيرة واحدة واضحة.",
-    "services.item2Title": "توجيه فني",
-    "services.item2Text": "دعم السباكين والمقاولين في مطابقة المنتجات وخيارات التركيب.",
-    "services.item3Title": "توريد بالجملة",
-    "services.item3Text": "تجهيز طلبات منظمة للفلل، المباني، المتاجر، والمشاريع الصناعية.",
-    "services.item4Title": "دعم المشترين",
-    "services.item4Text": "مساعدة أصحاب المنازل وتجار التجزئة على اختيار مواد عملية ومتوافقة قبل الشراء.",
-    "quote.eyebrow": "استفسارات اليمن",
-    "quote.title": "اطلب منتجات، كميات، أو حزمة مشروع.",
-    "quote.text": "تواصل مع فريقنا اليوم للحصول على تسعيرة مخصصة. قدم تفاصيل مشروعك، الكميات المطلوبة، والموقع، وسنقوم بإعداد حزمة شاملة لك.",
-    "quote.phone": "الهاتف: 000 000 000 967+",
-    "quote.whatsapp": "واتساب: 000 000 000 967+",
-    "quote.address": "العنوان: اليمن - أضف عنوان فرعك هنا",
-    "form.name": "الاسم",
-    "form.product": "المنتج المطلوب",
-    "form.message": "الرسالة",
-    "form.submit": "إرسال الطلب",
-    "form.option1": "أنظمة إمداد المياه",
-    "form.option2": "حلول الصرف الصحي",
-    "form.option3": "الأدوات الصحية",
-    "form.option4": "الصمامات والإكسسوارات",
-    "form.option5": "حزمة مشروع كاملة",
-    "footer.name": "نشوان الفقيه",
-    "footer.text": "كتالوج اليمن لإمدادات المياه، الصرف الصحي، الأدوات الصحية، الصمامات، التوصيلات، المواد اللاصقة، والإكسسوارات.",
-    "footer.quote": "طلب تسعيرة",
-    "footer.smartQuote": "طلب تسعيرة لمنتجات مصنع سمارت هوم",
-    "catalog.eyebrow": "المخزون العام",
-    "catalog.heroTitle": "مواد سباكة وبناء موثوقة للمشاريع في جميع أنحاء اليمن.",
-    "catalog.heroText": "قم بتصفية إمدادات المياه، والأدوات الصحية، والصمامات، والمواد اللاصقة، والإكسسوارات للعثور على المواد المناسبة للفلل، والمباني، والمتاجر، وأعمال الصيانة، وطلبات توريد المقاولين.",
-    "catalog.browseBtn": "تصفح المنتجات",
-    "catalog.quoteBtn": "طلب تسعيرة حزمة",
-    "catalog.eyebrow2": "تصفح حسب الحاجة",
-    "catalog.title2": "كتالوج عام لاختيار المنتجات بسرعة.",
-    "catalog.lede2": "تمت كتابة كل عنصر أدناه بوضوح للمشتري: ما هو، وأين يتم تركيبه، ولماذا يجب إدراجه في حزمة مشروع قوية ومتينة.",
-    "catalog.promise1": "مخزون جاهز للمقاولين",
-    "catalog.promise2": "فئات مناسبة لتجار التجزئة",
-    "catalog.promise3": "بطاقات منتجات جاهزة للتسعير",
-    "tools.step1": "1. اختر الفئة",
-    "tools.step2": "2. ابحث عن المنتجات",
-    "tools.step3": "3. تصفية حسب النوع",
-    "tools.searchHolder": "ابحث عن المنتجات",
-    "tools.reset": "إعادة ضبط الفلاتر",
-    "filter.all": "الكل",
-    "filter.water": "إمدادات المياه",
-    "filter.sanitary": "الأدوات الصحية",
-    "filter.valves": "الصمامات",
-    "filter.adhesives": "المواد اللاصقة",
-    "filter.accessories": "الإكسسوارات",
-    "type.pipes": "أنابيب",
-    "type.fittings": "توصيلات",
-    "empty.title": "لا توجد منتجات تطابق هذا العرض.",
-    "empty.text": "حاول مسح البحث أو اختيار فئة منتجات أوسع.",
-    "prod.ppr.title": "أنظمة أنابيب الضغط PP-R",
-    "prod.ppr.text": "أنظمة أنابيب متينة للمياه الساخنة والباردة للمنازل، والمباني، والمتاجر، والمشاريع التجارية الخفيفة.",
-    "prod.pprct.title": "أنابيب PP-RCT للخدمة الشاقة",
-    "prod.pprct.text": "خيارات أنابيب عالية الأداء للشبكات الكبيرة، والتركيبات الفنية، ومواصفات المشاريع المتطلبة.",
-    "prod.uv.title": "أنابيب متعددة الطبقات مقاومة للأشعة UV",
-    "prod.uv.text": "أنابيب جاهزة للاستخدام الخارجي مصممة للتعرض لأشعة الشمس، واستقرار الضغط، وعمر خدمة طويل في المناخات القاسية.",
-    "prod.fittings.title": "توصيلات (Tee، كوع، وصلة، ومخفض)",
-    "prod.fittings.text": "توصيلات أساسية لتخطيطات توزيع نظيفة، وسهولة الوصول للصيانة، وأعمال تركيب موثوقة.",
-    "prod.wash.title": "مغاسل توضع على سطح (مطفي)",
-    "prod.wash.text": "تشكيلة مغاسل فاخرة للفلل، والشقق، ومعارض العرض، والفنادق، والتجديدات الحديثة.",
-    "prod.dual.title": "أطقم صحية بطلاء مزدوج",
-    "prod.dual.text": "أطقم أدوات صحية أنيقة لعروض الحمامات الكاملة وحزم توريد المشاريع المتميزة.",
-    "prod.ball.title": "صمامات كروية (محابس كرة)",
-    "prod.ball.text": "صمامات إغلاق موثوقة للتحكم في المياه، ونقاط الخدمة، وأعمال التركيب العملية.",
-    "prod.concealed.title": "صمامات مخفية (محابس دفن)",
-    "prod.concealed.text": "خيارات تحكم نظيفة مثبتة على الحائط للحمامات، ونقاط السباكة المخفية، والديكورات الحديثة.",
-    "prod.tech.title": "صمامات فنية وفلاتر",
-    "prod.tech.text": "منتجات التحكم في الشبكة لتنظيم نقاط الخدمة، والفلترة، وخطوط السباكة الفنية.",
-    "prod.adhesives.title": "مواد لاصقة وغراء داعم",
-    "prod.adhesives.text": "مواد دعم التركيب لمفاصل آمنة، وصيانة موثوقة، وتشطيب احترافي.",
-    "prod.clamps.title": "مرابط (أقفال) ومستلزمات التركيب",
-    "prod.clamps.text": "منتجات داعمة تساعد السباكين على إكمال تركيبات أنيقة، ومستقرة، ومتوافقة.",
-    "prod.flange.title": "محولات فلنجة ومجمعات",
-    "prod.flange.text": "منتجات ربط لتوصيل أنظمة الأنابيب بالصمامات، والمضخات، والبنية التحتية الكبيرة للمشاريع.",
-    "spec.material": "المواد",
-    "spec.protection": "الحماية",
-    "spec.types": "الأنواع",
-    "spec.finish": "الطلاء",
-    "spec.range": "المدى",
-    "spec.ready": "جاهز لـ",
-    "spec.use": "الاستخدام",
-    "spec.use1": "مياه ساخنة وباردة",
-    "spec.use2": "الشبكات الرئيسية",
-    "spec.use3": "خطوط المياه الخارجية",
-    "spec.use4": "التفريعات والتوجيه",
-    "spec.uv": "مقاوم للأشعة فوق البنفسجية",
-    "spec.types1": "تي (Tee)، كوع، وصلة",
-    "spec.f1": "أسود مطفي",
-    "spec.f2": "طلاء مزدوج",
-    "spec.f3": "كروم",
-    "spec.u1": "حمامات حديثة",
-    "spec.u2": "حزم حمامات",
-    "spec.u3": "التحكم في المياه",
-    "spec.u4": "التحكم في الحمام",
-    "spec.u5": "التحكم في الشبكة",
-    "spec.u6": "دعم المفاصل",
-    "spec.u7": "إكمال المشروع",
-    "spec.u8": "توصيل النظام",
-    "spec.m1": "نحاس، كروم",
-    "spec.r1": "فلتر Y، صمام مقعد",
-    "spec.r2": "مرابط، إدخالات",
-    "spec.re1": "تركيب الموقع",
-    "spec.re2": "طلبات المشاريع",
-    "smart.eyebrow": "شريك التصنيع",
-    "smart.heroTitle": "أنظمة الصرف الصحي PVC-U من سمارت هوم مصممة لأداء موثوق داخليًا وخارجيًا.",
-    "smart.heroText": "يُقدم سمارت هوم كشريك مصنع مخصص لأنظمة تصريف مياه الصرف الصحي ومياه الأمطار بدون ضغط. تدعم هذه المجموعة المقاولين، والسباكين، وأصحاب المنازل بمكونات PVC-U خفيفة الوزن، ومقاومة قوية للمواد الكيميائية، وتدفق داخلي سلس، وسهولة الفحص، وأحجام عملية من 32 مم إلى 160 مم.",
-    "smart.btn1": "عرض منتجات سمارت هوم",
-    "smart.btn2": "طلب تسعيرة لمنتجات المصنع",
-    "smart.introEyebrow": "جودة المصنع",
-    "smart.introTitle": "مصممة لسعة تدفق عالية، وسرعة في التركيب، وحماية طويلة الأمد للمباني.",
-    "smart.introText": "تم تنظيم منتجات الصرف الصحي من سمارت هوم لأعمال المواقع الاحترافية: أنابيب لخطوط الصرف الصحي الرئيسية، وتوصيلات لتغيير الاتجاهات والتفريعات النظيفة، ومصارف أرضية للمناطق الرطبة، وحلول خارجية لإدارة مياه الأمطار، وغرف التفتيش، وحماية الارتداد (الرداد).",
-    "smart.qualEyebrow": "المعايير والثقة",
-    "smart.qualTitle": "حلول صرف صحي مصنوعة في المصنع للمشاريع المتطلبة.",
-    "smart.qualText": "تم اختيار مجموعة سمارت هوم لعملية التركيب السهلة، والتوافق المستمر بين المكونات، وتدفق المياه السلس، والمقاومة الكيميائية، والصيانة الصديقة للفحص. يمنح هذا المقاولين والسباكين في اليمن عائلة صرف صحي كاملة من شريك تصنيع واحد معترف به.",
-    "smart.list1Title": "نظام PVC-U متكامل",
-    "smart.list1Text": "تعمل الأنابيب، والتوصيلات، والمصارف، والقنوات، وغرف التفتيش، ومنتجات الحماية معًا عبر أحجام المشاريع المختلفة.",
-    "smart.list2Title": "أجزاء سهلة التركيب",
-    "smart.list2Text": "المكونات خفيفة الوزن وعائلات المنتجات الواضحة تدعم المناولة السريعة والتركيب النظيف في الموقع.",
-    "smart.list3Title": "تغطية داخلية وخارجية",
-    "smart.list3Text": "استخدم المجموعة لخطوط الصرف الصحي، وتصريف مياه الأمطار، ونقاط الفحص، وإدارة المياه الخارجية.",
-    "smart.gridEyebrow": "مجموعة منتجات سمارت هوم",
-    "smart.gridTitle": "عائلة صرف صحي PVC-U كاملة وعالية الأداء.",
-    "smart.gridText": "تصفح منتجات سمارت هوم حسب الفئة العملية للموقع. كل منتج معروض هنا ينتمي إلى مصنع سمارت هوم ويركز حصريًا على حلول الصرف الصحي، ومياه الأمطار، والتفتيش.",
-    "smart.tab.pipes": "أنابيب PVC-U",
-    "smart.tab.fittings": "توصيلات",
-    "smart.tab.drains": "مصارف أرضية (صفايات)",
-    "smart.tab.outdoor": "حلول خارجية",
-    "smart.p1": "أنابيب PVC-U",
-    "smart.p2": "أنابيب متعددة الطبقات",
-    "smart.p3": "أنابيب بجوان",
-    "smart.p4": "أنابيب لحام غراء",
-    "smart.p5": "الجزء العلوي لمصرف PVC",
-    "smart.p6": "سدادة أنبوب",
-    "smart.f1": "كوع 87.5°",
-    "smart.f2": "كوع 45°",
-    "smart.f3": "كوع بباب كشف",
-    "smart.f4": "تي (Tee) 87.5°",
-    "smart.f5": "تي (Tee) 45°",
-    "smart.f6": "تي بباب كشف",
-    "smart.f7": "صليب (كروس) 45°",
-    "smart.f8": "صليب قصير 87.5°",
-    "smart.f9": "وصلة (جلبة)",
-    "smart.f10": "وصلة بسن داخلي",
-    "smart.f11": "مخفض لا مركزي (نقاص)",
-    "smart.f12": "وصلة تمدد",
-    "smart.d1": "مصرف صغير",
-    "smart.d2": "مصرف 8.8 سم",
-    "smart.d3": "مصرف 7 سم",
-    "smart.d4": "مصرف بمانع روائح",
-    "smart.d5": "مصرف أرضي بمانع روائح",
-    "smart.d6": "غطاء مصرف أرضي",
-    "smart.d7": "سدادة مصرف أرضي",
-    "smart.d8": "مصرف أمطار بغطاء",
-    "smart.d9": "سيفون",
-    "smart.o1": "حلول خارجية",
-    "smart.o2": "غرفة تفتيش 500 مم",
-    "smart.o3": "غرفة تفتيش Ø600 مم",
-    "smart.o4": "مصرف نقطة تفتيش",
-    "smart.o5": "قناة مياه بغطاء زهر",
-    "smart.o6": "مجمع تصريف",
-    "smart.o7": "محطة رفع الصرف",
-    "smart.o8": "مصيدة (Gully Trap)",
-    "smart.o9": "صمامات ارتداد (رداد)",
-    "smart.o10": "هواية",
-    "smart.note.title": "التطبيقات والميزات",
-    "smart.note.text": "استخدم منتجات سمارت هوم لمياه الصرف الصحي، ومياه الأمطار، وتصريف المكيفات، وخطوط الصرف الرئيسية. تدعم المجموعة الأسطح الداخلية الملساء، والمناولة السهلة، والتدفق العالي، وسهولة الوصول للفحص، والمتانة طويلة الأمد.",
-    "card.viewDetails": "عرض التفاصيل",
-    "card.hint": "المواصفات وخيارات التسعير",
-    "card.quote": "طلب تسعيرة",
-    "modal.close": "إغلاق",
-    "modal.kicker": "المنتج المحدد",
-    "modal.specs": "مواصفات سريعة",
-    "modal.loc": "موقع الكتالوج",
-    "modal.type": "نوع المنتج",
-    "modal.avail": "التوافر",
-    "modal.availText": "توريد اليمن / طلب تسعيرة",
-    "modal.cont": "مواصلة التصفح"
+    'brand.name': 'نشوان الفقيه',
+    'brand.subtitle': 'حلول السباكة والبناء',
+    'brand.aria': 'الصفحة الرئيسية - نشوان الفقيه',
+    'nav.home': 'الرئيسية',
+    'nav.solutions': 'الحلول',
+    'nav.products': 'المنتجات',
+    'nav.smart': 'سمارت هوم',
+    'nav.banninger': 'بيننجر',
+    'nav.kessel': 'كيسيل',
+    'nav.brands': 'الشركات',
+    'nav.about': 'من نحن',
+    'nav.quote': 'طلب عرض سعر',
+
+    'hero.badge': 'شريكك الموثوق في البناء باليمن',
+    'hero.title': 'حلول كاملة للسباكة\nوالبناء',
+    'hero.desc': 'من أنظمة إمداد المياه القوية إلى الأدوات الصحية الفاخرة — نوفر مواد عالية الجودة مصممة لمتطلبات مشاريع اليمن.',
+    'hero.cta1': 'تصفح منتجاتنا',
+    'hero.cta2': 'مصنع سمارت هوم',
+    'hero.stat1': 'خط منتجات',
+    'hero.stat2': 'فئات رئيسية',
+    'hero.stat3': 'تغطية شاملة',
+    'hero.card1': 'الأدوات الصحية',
+    'hero.card2': 'الصمامات',
+    'hero.card3': 'مواسير PP-R',
+    'hero.card4': 'سمارت هوم',
+
+    'solutions.eyebrow': 'ما نقدمه',
+    'solutions.title': 'حلول بناء وسباكة شاملة',
+    'solutions.desc': 'نوفر كل ما يحتاجه مشروعك، من التخطيط الأولي حتى التركيب النهائي. نخدم المقاولين والسباكين وتجار التجزئة وأصحاب المنازل في جميع أنحاء اليمن.',
+
+    'sol1.title': 'أنظمة إمداد المياه',
+    'sol1.desc': 'أنظمة مواسير PP-R ومتعددة الطبقات لتوريد المياه الساخنة والباردة في المباني السكنية والتجارية.',
+    'sol1.link': 'استعرض المنتجات →',
+    'sol2.title': 'حلول الصرف الصحي',
+    'sol2.desc': 'أنظمة صرف PVC-U من مصنع سمارت هوم للتطبيقات الداخلية والخارجية، بما في ذلك القنوات وغرف التفتيش.',
+    'sol2.link': 'عرض سمارت هوم →',
+    'sol3.title': 'الأدوات الصحية',
+    'sol3.desc': 'أحواض غسيل وأطقم حمام وملحقات عالية الجودة من كبار الشركات المصنعة، مناسبة للمنازل اليمنية الحديثة.',
+    'sol3.link': 'تصفح الكتالوج →',
+    'sol4.title': 'الصمامات والتوصيلات',
+    'sol4.desc': 'صمامات كرة وصمامات عدم رجوع ومخفضات وكوع ووصلات T وجميع التوصيلات اللازمة لتركيبات السباكة الكاملة.',
+    'sol4.link': 'عرض جميع التوصيلات →',
+    'sol5.title': 'المواد اللاصقة والملحقات',
+    'sol5.desc': 'اسمنت مذيب PVC ومواد لاصقة CPVC ومشابك مواسير وجميع الملحقات للحصول على توصيلات سباكة آمنة وطويلة الأمد.',
+    'sol5.link': 'تسوق الملحقات →',
+    'sol6.title': 'حزم المشاريع',
+    'sol6.desc': 'تنسيق توريد متكامل للفيلات والمباني السكنية والمشاريع التجارية. عرض واحد يشمل كل شيء.',
+    'sol6.link': 'طلب حزمة →',
+
+    'catalog.eyebrow': 'كتالوجات المنتجات',
+    'catalog.title': 'كتالوجان متخصصان لاحتياجاتك',
+    'cat.badge1': 'الكتالوج العام',
+    'cat.title1': 'إمداد المياه والأدوات الصحية والملحقات',
+    'cat.desc1': 'تصفح مخزوننا الشامل من المواسير والتوصيلات والصمامات والأدوات الصحية والملحقات — كل شيء لمشاريع السباكة في جميع أنحاء اليمن.',
+    'cat.f1a': 'مواسير PP-R ومتعددة الطبقات',
+    'cat.f1b': 'صمامات الكرة وعدم الرجوع',
+    'cat.f1c': 'الأدوات الصحية والتجهيزات',
+    'cat.f1d': 'المواد اللاصقة والملحقات',
+    'cat.cta1': 'تصفح الكتالوج العام',
+    'cat.badge2': 'شريك المصنع',
+    'cat.title2': 'أنظمة صرف PVC-U من سمارت هوم',
+    'cat.desc2': 'استكشف الحل المتكامل للصرف الصحي من مصنع سمارت هوم — مواسير وتوصيلات ومصارف وقنوات خارجية وغرف تفتيش وحماية من الرجوع.',
+    'cat.f2a': 'أنظمة الصرف الداخلي',
+    'cat.f2b': 'حلول القنوات الخارجية',
+    'cat.f2c': 'غرف التفتيش',
+    'cat.f2d': 'صمامات الحماية من الرجوع',
+    'cat.cta2': 'استكشف مصنع سمارت هوم',
+
+    'why.eyebrow': 'لماذا تختارنا',
+    'why.title': 'شريكك الموثوق لمواد البناء عالية الجودة',
+    'why.desc': 'نشوان الفقيه ملتزم بتوريد مواد مختبرة ومعتمدة فقط تلبي المعايير الصارمة لمتطلبات المشاريع المتنوعة في اليمن.',
+    'why.item1title': 'جودة منتجات معتمدة',
+    'why.item1desc': 'يتم الحصول على جميع المنتجات من الشركات المصنعة ذات برامج الجودة المعترف بها والموافقات الدولية على المنتجات.',
+    'why.item2title': 'الخبرة التقنية',
+    'why.item2desc': 'يقدم فريقنا إرشادات متخصصة لاختيار المنتجات ومطابقة المواد الخاصة بكل مشروع.',
+    'why.item3title': 'توريد شامل في اليمن',
+    'why.item3desc': 'نخدم المقاولين والسباكين وتجار التجزئة وأصحاب المنازل في جميع أنحاء اليمن بتوريد منظم بالجملة وحزم مشاريع.',
+    'why.badge': 'جاهز للمشاريع',
+
+    'feat.eyebrow': 'أبرز المنتجات',
+    'feat.title': 'الأكثر طلباً في مشاريع اليمن',
+    'feat.cta': 'عرض جميع المنتجات',
+    'fp.cat1': 'صمامات', 'fp.name1': 'صمام كرة',
+    'fp.cat2': 'توصيلات', 'fp.name2': 'كوع 90°',
+    'fp.cat3': 'مواسير', 'fp.name3': 'ماسورة PP-R PN20',
+    'fp.cat4': 'توصيلات', 'fp.name4': 'وصلة T 90°',
+    'fp.cat5': 'توصيلات', 'fp.name5': 'وصلة أنثى',
+    'fp.cat6': 'صمامات', 'fp.name6': 'صمام عدم رجوع PPR',
+
+    'quote.eyebrow': 'تواصل معنا',
+    'quote.title': 'طلب عرض سعر لمشروعك',
+    'quote.desc': 'سواء كنت مقاولاً أو تاجراً أو صاحب منزل — سنعد حزمة شاملة مصممة لاحتياجات مشروعك المحدد.',
+    'contact.phoneLabel': 'الهاتف',
+    'contact.waLabel': 'واتساب',
+    'contact.addrLabel': 'العنوان',
+    'contact.addr': 'اليمن، صنعاء —جولة بيت بوس',
+
+    'form.nameLabel': 'الاسم الكامل',
+    'form.namePh': 'اسمك',
+    'form.phoneLabel': 'رقم الهاتف',
+    'form.phonePh': '+967 000 000 000',
+    'form.productLabel': 'فئة المنتج',
+    'form.selectDefault': 'اختر فئة',
+    'form.opt1': 'أنظمة إمداد المياه',
+    'form.opt2': 'حلول الصرف الصحي',
+    'form.opt3': 'الأدوات الصحية',
+    'form.opt4': 'الصمامات والتوصيلات',
+    'form.opt5': 'مصنع سمارت هوم',
+    'form.opt6': 'حزمة مشروع متكاملة',
+    'form.messageLabel': 'تفاصيل المشروع',
+    'form.messagePh': 'صف مشروعك: الموقع، الكميات، المقاسات، أو أي متطلبات محددة',
+    'form.submit': 'إرسال الطلب',
+    'form.note': 'سنرد خلال 24 ساعة بعرض سعر مفصل.',
+
+    'footer.tagline': 'المورد الموثوق لليمن لمواد السباكة والصرف والبناء الفاخرة.',
+    'footer.productsTitle': 'المنتجات',
+    'footer.waterSupply': 'أنظمة إمداد المياه',
+    'footer.drainage': 'حلول الصرف الصحي',
+    'footer.sanitary': 'الأدوات الصحية',
+    'footer.valves': 'الصمامات والتوصيلات',
+    'footer.adhesives': 'المواد اللاصقة',
+    'footer.servicesTitle': 'الخدمات',
+    'footer.quoteLink': 'طلب عرض سعر',
+    'footer.packages': 'حزم المشاريع',
+    'footer.technical': 'الإرشاد الفني',
+    'footer.smartHome': 'مصنع سمارت هوم',
+    'footer.contactTitle': 'اتصل بنا',
+    'footer.addr': '📍 اليمن، ',
+    'footer.copy': '© 2025 نشوان الفقيه. جميع الحقوق محفوظة. حلول السباكة والبناء — اليمن.',
+    'footer.catalog': 'كتالوج المنتجات',
+    'footer.smLink': 'سمارت هوم',
+    'brand.banninger': 'بيننجر (ألمانيا)',
+    'brand.smarthome': 'مصنع سمارت هوم',
+    'brand.kessel': 'كيسيل (ألمانيا)',
+    'brand.ece': 'إي سي إي للأدوات الصحية',
+    'tools.brandLabel': 'الشركة',
+    'prod.kessel.drainTitle': 'مصارف وقنوات كيسيل الأرضية',
+    'prod.kessel.drainDesc': 'قنوات تصريف ومصارف أرضية فاخرة مصنوعة من الفولاذ المقاوم للصدأ مع معدلات تدفق عالية وأنظمة مصيدة روائح موثوقة.',
+    'prod.kessel.valveTitle': 'صمامات كيسيل لمنع الارتداد',
+    'prod.kessel.valveDesc': 'صمامات حماية تلقائية من الارتداد مصممة لمنع ارتجاع مياه الصرف الصحي وفيضانات النسخ الاحتياطي في المباني الحديثة.',
+    'prod.kessel.stationTitle': 'محطات رفع الصرف الصحي كيسيل',
+    'prod.kessel.stationDesc': 'محطات رفع موثوقة لتصريف مياه الصرف الصحي تحت مستوى الارتداد، وهي مناسبة للتطبيقات الشاقة.',
+
+    /* Fitting Splits translations Ar */
+    'prod.tee90.title': 'كوع تي متساوي 90° بيننجر PP-R',
+    'prod.tee90.text': 'توصيلات تي متساوية لتفريغ وتوزيع شبكات مواسير PP-R.',
+    'prod.elbow90.title': 'كوع 90° بيننجر PP-R',
+    'prod.elbow90.text': 'أكواع قياسية 90 درجة لتغيير اتجاه مواسير المياه.',
+    'prod.elbow45.title': 'كوع 45° بيننجر PP-R',
+    'prod.elbow45.text': 'أكواع قياسية 45 درجة للانعطافات الخفيفة للمواسير.',
+    'prod.socket.title': 'سوكيت بيننجر PP-R',
+    'prod.socket.text': 'سوكيت قياسي ذو جودة عالية لوصل مواسير PP-R.',
+    'prod.reducer.title': 'مخفض بيننجر PP-R',
+    'prod.reducer.text': 'سوكيت مخفض للانتقال بين مقاسات المواسير المختلفة.',
+    'prod.unionfemale.title': 'وصلة لاكور بسن أنثى بيننجر PP-R',
+    'prod.unionfemale.text': 'وصلة لاكور مسننة بقلب نحاسي داخلي لتركيب الأجهزة والمحابس.',
+    'prod.unionmale.title': 'وصلة لاكور بسن ذكر بيننجر PP-R',
+    'prod.unionmale.text': 'وصلة لاكور مسننة بقلب نحاسي خارجي لتركيب الأجهزة والمحابس.',
+    'prod.unionfemaleblack.title': 'وصلة لاكور بسن أنثى أسود بيننجر (UV)',
+    'prod.unionfemaleblack.text': 'وصلة لاكور سوداء مقاومة للأشعة بسن نحاسي أنثى للخطوط الخارجية.',
+    'prod.unionmaleblack.title': 'وصلة لاكور بسن ذكر أسود بيننجر (UV)',
+    'prod.unionmaleblack.text': 'وصلة لاكور سوداء مقاومة للأشعة بسن نحاسي ذكر للخطوط الخارجية.',
+    'prod.checkppr.title': 'صمام عدم رجوع بيننجر PP-R (نهايتين لحام)',
+    'prod.checkppr.text': 'صمام عدم رجوع لمنع الارتداد بنهايتين لحام مواسير PP-R.',
+    'prod.checkfemale.title': 'صمام عدم رجوع بسن أنثى بيننجر PP-R',
+    'prod.checkfemale.text': 'صمام عدم رجوع لمنع الارتداد بنهاية لحام ونهاية سن نحاسي أنثى.',
+    'prod.checkmale.title': 'صمام عدم رجوع بسن ذكر بيننجر PP-R',
+    'prod.checkmale.text': 'صمام عدم رجوع لمنع الارتداد بنهاية لحام ونهاية سن نحاسي ذكر.',
+    'prod.checkblack.title': 'صمام عدم رجوع أسود بيننجر PPR (UV)',
+    'prod.checkblack.text': 'صمام عدم رجوع أسود مقاوم للأشعة فوق البنفسجية للتركيبات الخارجية.',
+    'prod.manifold4.title': 'مشعب لحام 4 مخارج بيننجر PP-R',
+    'prod.manifold4.text': 'مشعب توزيع ملحوم ذو 4 مخارج لتوزيع المياه بكفاءة.',
+    'prod.manifoldend.title': 'سدادة مشعب لحام بيننجر PP-R',
+    'prod.manifoldend.text': 'نهاية مغلقة ملحومة لإنهاء خطوط مشعبات التوزيع.',
+    'prod.flange.title': 'محول فلانشة مجوف بيننجر PP-RCT',
+    'prod.flange.text': 'محول فلانشة لربط مواسير PP-RCT مع المحابس الكبيرة أو المضخات.',
+    'prod.flangering.title': 'حلقة فلانشة تدعيم بيننجر PP',
+    'prod.flangering.text': 'حلقة فلانشة خلفية مدعمة بالمعدن لتأمين ربط الفلانشات.',
+    'prod.manifoldnoend.title': 'مشعب لحام مفتوح النهايات بيننجر PP-R',
+    'prod.manifoldnoend.text': 'مشعب توزيع بدون سدادة طرفية للتوصيلات المخصصة.',
+    'prod.bracketfemale.title': 'كوع حائطي بسن أنثى بيننجر PP-R',
+    'prod.bracketfemale.text': 'أكواع حائطية مثبتة بسن نحاسي أنثى لتوصيل الحنفيات مباشرة.',
+    'prod.doublebracket.title': 'كوع حائطي مزدوج بسن أنثى بيننجر PP-R',
+    'prod.doublebracket.text': 'كوع حائطي مزدوج لتوصيل خلاطات المياه والرشاشات بشكل نظيف.',
+
+    /* Smart Home page translations Ar */
+    'smart.factoryLabel': 'شريك المصنع',
+    'smart.heroTitle': 'أنظمة صرف PVC-U سمارت هوم لليمن',
+    'smart.heroText': 'تعتبر سمارت هوم شريكاً مخصصاً للمصانع لأنظمة الصرف الصحي ومياه الأمطار غير المضغوطة. تدعم هذه المجموعة المقاولين والسباكين وأصحاب المنازل بمكونات PVC-U خفيفة الوزن، ومقاومة كيميائية قوية، وتدفق داخلي سلس، ومقاسات عملية من 32 ملم إلى 160 ملم.',
+    'smart.btn1': 'عرض المنتجات',
+    'smart.btn2': 'طلب عرض سعر المصنع',
+    'smart.list1Title': 'نظام صرف PVC-U متكامل',
+    'smart.list1Text': 'تعمل المواسير والتوصيلات والمصارف والقنوات والغرف وحلول الحماية معاً لتغطية جميع أحجام المشاريع.',
+    'smart.list2Title': 'مكونات سهلة التركيب',
+    'smart.list2Text': 'تتميز المكونات بخفة وزنها وتصنيفاتها الواضحة لتسهيل عملية التداول والتثبيت السريع والنظيف في الموقع.',
+    'smart.list3Title': 'تغطية داخلية وخارجية',
+    'smart.list3Text': 'تُستخدم المجموعة لخطوط الصرف الصحي وتصريف مياه الأمطار ونقاط التفتيش وإدارة المياه الخارجية.',
+    'smart.introEyebrow': 'جودة المصنع الفائقة',
+    'smart.introTitle': 'مصمم لسعة تدفق عالية وسرعة تركيب وحماية طويلة الأمد',
+    'smart.introText': 'تم تنظيم منتجات الصرف الصحي من سمارت هوم لتناسب أعمال الموقع الاحترافية: مواسير لشبكات الصرف الرئيسية، وتوصيلات لتغيير الاتجاهات والتفريعات بشكل نظيف، ومصارف أرضية للمناطق الرطبة، وحلول خارجية لإدارة مياه الأمطار والتفتيش ومنع الارتداد.',
+    'si.b1': 'صرف المياه العادمة ومياه الأمطار',
+    'si.b2': 'مقاسات من 32 ملم إلى 160 ملم',
+    'si.b3': 'مقاومة كيميائية وتدفق داخلي سلس',
+    'si.b4': 'نقاط وصول مدمجة لسهولة الكشف والتفتيش',
+    'smart.gridEyebrow': 'مجموعة منتجات سمارت هوم',
+    'smart.gridTitle': 'عائلة صرف متكاملة وعالية الأداء من الـ PVC-U',
+    'smart.gridText': 'تصفح منتجات سمارت هوم حسب فئة الموقع العملية. كل منتج معروض ينتمي إلى عائلة مصنع سمارت هوم — المتخصصة حصرياً في حلول الصرف ومياه الأمطار والتفتيش.',
+    'smart.tab.pipes': 'مواسير PVC-U',
+    'smart.tab.fittings': 'التوصيلات والقطع',
+    'smart.tab.drains': 'المصارف الأرضية',
+    'smart.tab.outdoor': 'الحلول الخارجية',
+
+    /* Smart Home Pipe Cards */
+    'smart.p1': 'مواسير صرف PVC-U',
+    'smart.p2': 'مواسير متعددة الطبقات',
+    'smart.p3': 'مواسير بنهاية سوكيت وحلقة مطاطية',
+    'smart.p4': 'مواسير بنهاية لحام إسمنتي (غراء)',
+    'smart.p5': 'الجزء العلوي لبالوعة الصرف PVC',
+    'smart.p6': 'سدادة ماسورة الصرف',
+
+    /* Smart Home Fitting Cards */
+    'smart.f1': 'كوع 87.5°',
+    'smart.f2': 'كوع 45°',
+    'smart.f3': 'كوع بباب كشف وتفتيش',
+    'smart.f4': 'مشترك 87.5° (Tee)',
+    'smart.f5': 'مشترك 45°',
+    'smart.f6': 'مشترك 87.5° بباب كشف وتفتيش',
+    'smart.f7': 'مشترك رباعي (كروس) 45°',
+    'smart.f8': 'مشترك رباعي قصير 87.5°',
+    'smart.f9': 'سوكيت وصل (جلبة)',
+    'smart.f10': 'سوكيت بسن داخلي نحاسي',
+    'smart.f11': 'مخفض لا مركزي (مسلوب)',
+    'smart.f12': 'وصلة تمدد (لاكور تمدد)',
+    'smart.f13': 'كوع قصير 87.5°',
+    'smart.f14': 'سوكيت تصليح (جلبة تصليح)',
+    'smart.f15': 'بوش تخفيض (جلبة تخفيض)',
+
+    /* Smart Home Floor Drain Cards */
+    'smart.d1': 'بالوعة صرف صغيرة',
+    'smart.d2': 'بالوعة صرف 8.8 سم',
+    'smart.d3': 'بالوعة صرف 7 سم',
+    'smart.d4': 'بالوعة صرف مع مصيدة روائح',
+    'smart.d5': 'بالوعة صرف أرضية 110-125 مع مصيدة روائح',
+    'smart.d6': 'غطاء بالوعة صرف أرضية',
+    'smart.d7': 'سدادة بالوعة صرف أرضية',
+    'smart.d8': 'بالوعة صرف مياه الأمطار مع غطاء',
+    'smart.d9': 'سيفون صرف',
+
+    /* Smart Home Outdoor Cards */
+    'smart.o1': 'نظرة عامة على الحلول الخارجية',
+    'smart.o2': 'غرفة تفتيش مقاس 500 مم',
+    'smart.o3': 'غرفة تفتيش دائرية مقاس 600 مم',
+    'smart.o4': 'بالوعة تفتيش بدون مصيدة روائح',
+    'smart.o5': 'قناة تصريف مياه مع غطاء حديد زهر',
+    'smart.o6': 'جامع مياه صرف (مجمع تصريف)',
+    'smart.o7': 'محطة رفع الصرف الصحي المدمجة',
+    'smart.o8': 'بالوعة صرف جانبية (جولي تراب)',
+    'smart.o9': 'صمامات الحماية من الارتداد الخلفي',
+    'smart.o10': 'منفذ تهوية الهواء (هواية)',
+
+    'smart.note.title': 'التطبيقات والميزات',
+    'smart.note.text': 'تُستخدم منتجات سمارت هوم لشبكات الصرف الصحي، وتصريف الأمطار، وصرف تكييف الهواء، وخطوط الصرف الرئيسية. تدعم المجموعة الأسطح الداخلية فائقة النعومة، وسهولة المناولة، والتدفق العالي، والوصول السهل للتفتيش، والمتانة طويلة الأمد.',
+    'cta.smartTitle': 'طلب مجموعة منتجات مصنع سمارت هوم',
+    'cta.smartDesc': 'احصل على عرض أسعار شامل لجميع منتجات صرف سمارت هوم التي تحتاجها لمشروعك.',
   }
 };
 
-// ==========================================
-// ROBUST TRANSLATION LOGIC (Handles URL parameters & Local Storage)
-// ==========================================
-
+/* ---- State ---- */
 let currentLang = 'en';
 
-// Safely get language (Checks URL first, then localStorage)
-try {
-  const params = new URLSearchParams(window.location.search);
-  if (params.has('lang')) {
-    currentLang = params.get('lang');
-    localStorage.setItem('siteLang', currentLang);
-  } else {
-    currentLang = localStorage.getItem('siteLang') || 'en';
-  }
-} catch (e) {
-  // Ignore error if running strictly locally
-}
-
-function applyTranslation(lang) {
-  // 1. Change direction
+/* ---- Language Toggle ---- */
+function applyTranslations(lang) {
+  currentLang = lang;
+  const t = translations[lang];
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
 
-  // 2. Change Text Content
+  // Text content
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (translations[lang] && translations[lang][key]) {
-      el.textContent = translations[lang][key];
+    if (t[key] !== undefined) {
+      el.textContent = t[key];
     }
   });
 
-  // 3. Change Placeholders
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (translations[lang] && translations[lang][key]) {
-      el.placeholder = translations[lang][key];
+  // Placeholders
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.getAttribute('data-i18n-ph');
+    if (t[key] !== undefined) {
+      el.placeholder = t[key];
     }
   });
 
-  // 4. Update the toggle button itself
-  const toggleBtn = document.querySelector('[data-language-toggle]');
-  if (toggleBtn) {
-    toggleBtn.textContent = lang === 'ar' ? translations.ar["language.btn"] : translations.en["language.btn"];
+  // Aria labels
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+    const key = el.getAttribute('data-i18n-aria-label');
+    if (t[key] !== undefined) {
+      el.setAttribute('aria-label', t[key]);
+    }
+  });
+
+  // Update lang button label
+  const langBtn = document.getElementById('lang-toggle');
+  if (langBtn) {
+    const btnSvg = langBtn.querySelector('svg');
+    langBtn.textContent = lang === 'ar' ? 'English' : 'العربية';
+    if (btnSvg) langBtn.prepend(btnSvg);
   }
 
-  // 5. Append language to all internal links (Fixes issue where changing page resets to English)
-  document.querySelectorAll('a').forEach(link => {
-    const href = link.getAttribute('href');
-    if (href && href.includes('.html')) {
-      try {
-        const url = new URL(link.href);
-        url.searchParams.set('lang', lang);
-        link.href = url.href;
-      } catch (e) {
-        // Ignore parsing errors
-      }
+  // Store preference
+  try { localStorage.setItem('naf-lang', lang); } catch (e) { }
+}
+
+function initLang() {
+  const storedLang = (() => {
+    try { return localStorage.getItem('naf-lang'); } catch (e) { return null; }
+  })();
+  const lang = storedLang || (navigator.language && navigator.language.startsWith('ar') ? 'ar' : 'en');
+  applyTranslations(lang);
+}
+
+/* ---- Sticky Header ---- */
+function initHeader() {
+  const header = document.getElementById('site-header');
+  if (!header) return;
+
+  const onScroll = () => {
+    if (window.scrollY > 60) {
+      header.classList.add('scrolled');
+    } else {
+      header.classList.remove('scrolled');
+    }
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
+/* ---- Mobile Hamburger ---- */
+function initHamburger() {
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (!hamburger || !mobileMenu) return;
+
+  function closeMobileMenu() {
+    hamburger.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', 'false');
+    mobileMenu.classList.remove('open');
+    mobileMenu.setAttribute('aria-hidden', 'true');
+  }
+
+  hamburger.addEventListener('click', () => {
+    const isOpen = hamburger.classList.contains('open');
+    if (isOpen) {
+      closeMobileMenu();
+    } else {
+      hamburger.classList.add('open');
+      hamburger.setAttribute('aria-expanded', 'true');
+      mobileMenu.classList.add('open');
+      mobileMenu.setAttribute('aria-hidden', 'false');
     }
   });
 
-  // 6. Save preference
-  try {
-    localStorage.setItem('siteLang', lang);
-  } catch (e) {}
-}
+  // Close on link click
+  mobileMenu.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', closeMobileMenu);
+  });
 
-// Attach event listener to button
-const langButton = document.querySelector('[data-language-toggle]');
-if (langButton) {
-  langButton.addEventListener('click', () => {
-    currentLang = currentLang === 'en' ? 'ar' : 'en';
-    applyTranslation(currentLang);
+  // Close on outside click
+  document.addEventListener('click', (e) => {
+    if (!hamburger.contains(e.target) && !mobileMenu.contains(e.target)) {
+      closeMobileMenu();
+    }
   });
 }
 
-// Run immediately on page load
-applyTranslation(currentLang);
+/* ---- Scroll Animations ---- */
+function initScrollAnimations() {
+  const els = document.querySelectorAll('[data-animate]');
+  if (!els.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const delay = parseInt(el.getAttribute('data-delay') || '0', 10);
+        setTimeout(() => {
+          el.classList.add('is-visible');
+        }, delay);
+        observer.unobserve(el);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  els.forEach(el => observer.observe(el));
+}
+
+/* ---- Scroll To Top ---- */
+function initScrollTop() {
+  const btn = document.getElementById('scroll-top');
+  if (!btn) return;
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 400) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+  }, { passive: true });
+
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
+
+/* ---- Quote Form ---- */
+function initForm() {
+  const form = document.getElementById('quote-form');
+  if (!form) return;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const submitBtn = form.querySelector('#form-submit-btn');
+    const btnText = submitBtn?.querySelector('.btn-text');
+
+    // Simple validation
+    const name = form.querySelector('#f-name');
+    if (name && !name.value.trim()) {
+      name.focus();
+      name.style.borderColor = 'var(--error)';
+      setTimeout(() => { name.style.borderColor = ''; }, 2000);
+      return;
+    }
+
+    // Simulate submission
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      if (btnText) btnText.textContent = currentLang === 'ar' ? 'جاري الإرسال...' : 'Sending...';
+    }
+
+    setTimeout(() => {
+      if (submitBtn) {
+        submitBtn.style.background = 'var(--success)';
+        if (btnText) btnText.textContent = currentLang === 'ar' ? '✓ تم الإرسال بنجاح!' : '✓ Request Sent!';
+      }
+
+      setTimeout(() => {
+        form.reset();
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.style.background = '';
+          if (btnText) btnText.textContent = translations[currentLang]['form.submit'] || 'Send Request';
+        }
+      }, 3000);
+    }, 1200);
+  });
+
+  // Clear error styling on input
+  form.querySelectorAll('input, textarea, select').forEach(field => {
+    field.addEventListener('focus', () => {
+      field.style.borderColor = '';
+    });
+  });
+}
+
+/* ---- Active Nav Link on Scroll ---- */
+function initActiveNav() {
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+  if (!sections.length || !navLinks.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href')?.includes(`#${id}`) ||
+            (id === 'hero' && link.getAttribute('href') === 'index.html')) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  }, { threshold: 0.35 });
+
+  sections.forEach(section => observer.observe(section));
+}
+
+/* ---- Topbar scroll behavior ---- */
+function initTopbar() {
+  const topbar = document.getElementById('topbar');
+  if (!topbar) return;
+  // Topbar stays visible — no scroll-hide needed for now
+}
+
+/* ---- Counter Animation ---- */
+function animateCounter(el, target, suffix = '') {
+  const duration = 1500;
+  const start = performance.now();
+  const startVal = 0;
+
+  const isNumeric = !isNaN(parseFloat(target));
+  if (!isNumeric) {
+    el.textContent = target;
+    return;
+  }
+
+  const targetNum = parseFloat(target);
+
+  function update(time) {
+    const elapsed = time - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(startVal + (targetNum - startVal) * eased);
+    el.textContent = current + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+  }
+
+  requestAnimationFrame(update);
+}
+
+function initCounters() {
+  const statEls = document.querySelectorAll('.stat-item strong');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const raw = el.textContent.trim();
+        if (raw === '100+') animateCounter(el, 100, '+');
+        else if (raw === '6') animateCounter(el, 6);
+        observer.unobserve(el);
+      }
+    });
+  }, { threshold: 0.8 });
+
+  statEls.forEach(el => observer.observe(el));
+}
+
+/* ---- Initialize All ---- */
+document.addEventListener('DOMContentLoaded', () => {
+  initLang();
+  initHeader();
+  initHamburger();
+  initScrollAnimations();
+  initScrollTop();
+  initForm();
+  initActiveNav();
+  initTopbar();
+  initCounters();
+
+  // Language toggle
+  const langBtn = document.getElementById('lang-toggle');
+  if (langBtn) {
+    langBtn.addEventListener('click', () => {
+      applyTranslations(currentLang === 'en' ? 'ar' : 'en');
+    });
+  }
+});
